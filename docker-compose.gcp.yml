@@ -1,0 +1,83 @@
+# Layer GCP-specific config without touching the upstream compose.
+services:
+  # --- App containers: point to Cloud SQL + GCS ---
+  langfuse-web:
+    environment:
+      # Required core (see Langfuse config docs)
+      HOSTNAME: "0.0.0.0"
+      PORT: "3000"
+      NEXTAUTH_URL: "${NEXTAUTH_URL}"
+      NEXTAUTH_SECRET: "${NEXTAUTH_SECRET}"
+      SALT: "${SALT}"
+      ENCRYPTION_KEY: "${ENCRYPTION_KEY}"
+
+      # Postgres via Cloud SQL Auth Proxy (provided via .env)
+      DATABASE_URL: "${DATABASE_URL}"
+
+      # ClickHouse/Redis keep using the service names from the original compose
+      CLICKHOUSE_URL: "http://clickhouse:8123"
+      CLICKHOUSE_MIGRATION_URL: "clickhouse://clickhouse:9000"
+      CLICKHOUSE_USER: "${CLICKHOUSE_USER}"
+      CLICKHOUSE_PASSWORD: "${CLICKHOUSE_PASSWORD}"
+      CLICKHOUSE_DB: "${CLICKHOUSE_DB:-default}"
+      CLICKHOUSE_CLUSTER_ENABLED: "false"
+
+      # Use REDIS_AUTH from .env; base compose already sets host/port
+
+      # ---- Google Cloud Storage (native) ----
+      LANGFUSE_USE_GOOGLE_CLOUD_STORAGE: "${LANGFUSE_USE_GOOGLE_CLOUD_STORAGE:-true}"
+      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: "${LANGFUSE_S3_EVENT_UPLOAD_BUCKET}"
+      # If you rely on the VM's service account (ADC), DO NOT set credentials:
+      # LANGFUSE_GOOGLE_CLOUD_STORAGE_CREDENTIALS: "/secrets/gcs.json"
+      LANGFUSE_S3_EVENT_UPLOAD_PREFIX: "${LANGFUSE_S3_EVENT_UPLOAD_PREFIX}"
+
+      # Optional: enable media + exports in GCS too
+      LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: "${LANGFUSE_S3_MEDIA_UPLOAD_BUCKET}"
+      LANGFUSE_S3_BATCH_EXPORT_ENABLED: "${LANGFUSE_S3_BATCH_EXPORT_ENABLED:-false}"
+      LANGFUSE_S3_BATCH_EXPORT_BUCKET: "${LANGFUSE_S3_BATCH_EXPORT_BUCKET}"
+
+    # Ensure we don't wait on Postgres/MinIO
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  langfuse-worker:
+    environment:
+      NEXTAUTH_URL: "${NEXTAUTH_URL}"
+      NEXTAUTH_SECRET: "${NEXTAUTH_SECRET}"
+      SALT: "${SALT}"
+      ENCRYPTION_KEY: "${ENCRYPTION_KEY}"
+
+      DATABASE_URL: "${DATABASE_URL}"
+
+      CLICKHOUSE_URL: "http://clickhouse:8123"
+      CLICKHOUSE_MIGRATION_URL: "clickhouse://clickhouse:9000"
+      CLICKHOUSE_USER: "${CLICKHOUSE_USER}"
+      CLICKHOUSE_PASSWORD: "${CLICKHOUSE_PASSWORD}"
+      CLICKHOUSE_DB: "${CLICKHOUSE_DB:-default}"
+      CLICKHOUSE_CLUSTER_ENABLED: "false"
+
+      # Use REDIS_AUTH from .env; base compose already sets host/port
+
+      LANGFUSE_USE_GOOGLE_CLOUD_STORAGE: "${LANGFUSE_USE_GOOGLE_CLOUD_STORAGE:-true}"
+      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: "${LANGFUSE_S3_EVENT_UPLOAD_BUCKET}"
+      # LANGFUSE_GOOGLE_CLOUD_STORAGE_CREDENTIALS: "/secrets/gcs.json"
+      LANGFUSE_S3_EVENT_UPLOAD_PREFIX: "${LANGFUSE_S3_EVENT_UPLOAD_PREFIX}"
+      LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: "${LANGFUSE_S3_MEDIA_UPLOAD_BUCKET}"
+      LANGFUSE_S3_BATCH_EXPORT_ENABLED: "${LANGFUSE_S3_BATCH_EXPORT_ENABLED:-false}"
+      LANGFUSE_S3_BATCH_EXPORT_BUCKET: "${LANGFUSE_S3_BATCH_EXPORT_BUCKET}"
+
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # --- Keep Postgres/MinIO in the original file but don't start them ---
+  # Mark them behind a profile so they only run if explicitly enabled.
+  postgres:
+    profiles: ["local-db"]
+  minio:
+    profiles: ["local-db"]
