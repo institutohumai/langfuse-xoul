@@ -38,10 +38,8 @@ services:
 
     # Ensure we don't wait on Postgres/MinIO
     depends_on:
-      clickhouse:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - clickhouse
+      - redis
 
   langfuse-worker:
     environment:
@@ -70,14 +68,12 @@ services:
       LANGFUSE_S3_BATCH_EXPORT_BUCKET: "${LANGFUSE_S3_BATCH_EXPORT_BUCKET}"
 
     depends_on:
-      clickhouse:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - clickhouse
+      - redis
 
-  # --- Keep Postgres/MinIO in the original file but don't start them ---
-  # Mark them behind a profile so they only run if explicitly enabled.
+  # Gate local Postgres/MinIO behind a profile so they won't start by default
   postgres:
     profiles: ["local-db"]
   minio:
     profiles: ["local-db"]
+  
