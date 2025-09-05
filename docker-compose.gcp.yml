@@ -36,6 +36,9 @@ services:
       LANGFUSE_S3_BATCH_EXPORT_ENABLED: "${LANGFUSE_S3_BATCH_EXPORT_ENABLED:-false}"
       LANGFUSE_S3_BATCH_EXPORT_BUCKET: "${LANGFUSE_S3_BATCH_EXPORT_BUCKET}"
 
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
     # Ensure we don't wait on Postgres/MinIO
     depends_on:
       - clickhouse
@@ -66,6 +69,9 @@ services:
       LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: "${LANGFUSE_S3_MEDIA_UPLOAD_BUCKET}"
       LANGFUSE_S3_BATCH_EXPORT_ENABLED: "${LANGFUSE_S3_BATCH_EXPORT_ENABLED:-false}"
       LANGFUSE_S3_BATCH_EXPORT_BUCKET: "${LANGFUSE_S3_BATCH_EXPORT_BUCKET}"
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
     depends_on:
       - clickhouse
